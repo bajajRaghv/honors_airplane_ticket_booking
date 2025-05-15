@@ -42,17 +42,21 @@ pipeline {
         }
 
 
-        stage('Run JAR on EC2') {
-            steps {
-                echo "Running Spring Boot application on EC2..."
-                withCredentials([sshUserPrivateKey(credentialsId: '1ff4987a-2ec1-421d-b4b1-3f13dc0ff9f8', keyFileVariable: 'SSH_KEY')]) {
-                    bat """
-                        ssh -i %SSH_KEY% -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} ^
-                        "pkill -f ${JAR_NAME} || echo 'No process to kill'; ^
-                        nohup java -jar /home/${EC2_USER}/${JAR_NAME} > app.log 2>&1 &"
-                    """
-                }
-            }
+       stage('Run JAR on EC2') {
+           steps {
+               echo "Fixing SSH key permissions..."
+               withCredentials([sshUserPrivateKey(credentialsId: '1ff4987a-2ec1-421d-b4b1-3f13dc0ff9f8', keyFileVariable: 'SSH_KEY')]) {
+                   bat """
+                       icacls "%SSH_KEY%" /inheritance:r
+                       icacls "%SSH_KEY%" /grant:r "%USERDOMAIN%\\%USERNAME%:R"
+                       icacls "%SSH_KEY%" /remove "BUILTIN\\Users"
+                       icacls "%SSH_KEY%" /remove "Users"
+
+                       ssh -i %SSH_KEY% -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "pkill -f ${JAR_NAME} || echo No process to kill; nohup java -jar /home/${EC2_USER}/${JAR_NAME} > app.log 2>&1 &"
+                   """
+               }
+           }
+       }
         }
     }
 }
