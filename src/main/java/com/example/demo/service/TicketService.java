@@ -16,22 +16,22 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 @Service
-public class TicketBookingService {
+public class TicketService {
 
     private final TicketRepository ticketRepo;
     private final ScheduleRepository scheduleRepo;
 
     @Autowired
-    public TicketBookingService(TicketRepository ticketRepo, ScheduleRepository scheduleRepo) {
+    public TicketService(TicketRepository ticketRepo, ScheduleRepository scheduleRepo) {
         this.ticketRepo = ticketRepo;
         this.scheduleRepo = scheduleRepo;
     }
 
     @Transactional
-    public Ticket bookNewTicket(TicketRequest request) {
-        Optional<Schedule> scheduleOpt = scheduleRepo.findById(request.getScheduleId());
+    public Ticket generateTicket(TicketRequest request) {
+        Optional<Schedule> scheduleOpt = scheduleRepo.findById(request.getTripScheduleId());
         if (!scheduleOpt.isPresent()) {
-            throw new ResourceNotFoundException("No schedule exists with ID: " + request.getScheduleId());
+            throw new ResourceNotFoundException("No schedule exists with ID: " + request.getTripScheduleId());
         }
 
         Schedule currentSchedule = scheduleOpt.get();
@@ -45,14 +45,14 @@ public class TicketBookingService {
         return ticketRepo.save(newTicket);
     }
 
-    public Ticket fetchTicketDetails(Long ticketId) {
+    public Ticket fetchTicket(Long ticketId) {
         Optional<Ticket> ticket = ticketRepo.findById(ticketId);
         return ticket.orElseThrow(() ->
                 new ResourceNotFoundException("No ticket found for ID: " + ticketId));
     }
 
     @Transactional
-    public void terminateTicket(Long ticketId) {
+    public void removeTicket(Long ticketId) {
         Optional<Ticket> ticketOpt = ticketRepo.findByIdAndStatus(ticketId, TicketStatus.BOOKED);
         if (!ticketOpt.isPresent()) {
             throw new ValidationException("No active ticket found with ID: " + ticketId);
@@ -64,11 +64,11 @@ public class TicketBookingService {
 
     private Ticket initializeTicket(TicketRequest request, Schedule schedule) {
         Ticket ticket = new Ticket();
-        ticket.setPassengerName(request.getPassengerName());
+        ticket.setTravelerFullName(request.getTravelerName());
         ticket.setSchedule(schedule);
-        ticket.setSeatAssignment(createSeatIdentifier());
-        ticket.setTicketPrice(computeTicketCost(schedule));
-        ticket.setBookingStatus(TicketStatus.BOOKED);
+        ticket.setAssignedSeat(createSeatIdentifier());
+        ticket.setCost(computeTicketCost(schedule));
+        ticket.setState(TicketStatus.BOOKED);
         return ticket;
     }
 
@@ -79,7 +79,7 @@ public class TicketBookingService {
     }
 
     private void processCancellation(Ticket ticket) {
-        ticket.setBookingStatus(TicketStatus.CANCELLED);
+        ticket.setState(TicketStatus.CANCELLED);
         Schedule associatedSchedule = ticket.getSchedule();
         associatedSchedule.setRemainingSeats(associatedSchedule.getRemainingSeats() + 1);
 

@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.entity.Flight;
 import com.example.demo.entity.Schedule;
 import com.example.demo.service.FlightService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import java.util.List;
 public class FlightController {
     private final FlightService flightSvc;
 
+    @Autowired
     public FlightController(FlightService service) {
         this.flightSvc = service;
     }
@@ -27,7 +29,7 @@ public class FlightController {
     @GetMapping("/all")
     public ResponseEntity<List<Flight>> retrieveAllFlights(
             @RequestParam(name = "sortBy", required = false) String sortingCriteria) {
-        List<Flight> flights = flightSvc.fetchAllFlights(sortingCriteria);
+        List<Flight> flights = flightSvc.retrieveAllFlights(sortingCriteria);
         return new ResponseEntity<>(flights, HttpStatus.OK);
     }
 

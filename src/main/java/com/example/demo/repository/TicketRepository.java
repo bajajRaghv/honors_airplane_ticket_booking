@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 @Component
-public interface TicketRepo extends CrudRepository<Ticket, Long> {
+public interface TicketRepository extends CrudRepository<Ticket, Long> {
     Optional<Ticket> retrieveByIdAndState(Long ticketId, TicketStatus ticketState);
+
+    Optional<Ticket> findByIdAndStatus(Long ticketId, TicketStatus ticketStatus);
 }

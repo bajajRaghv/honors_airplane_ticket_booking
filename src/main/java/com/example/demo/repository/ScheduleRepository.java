@@ -1,13 +1,16 @@
-package com.example.demo.data;
+package com.example.demo.repository;
 
-import com.example.demo.model.FlightSchedule;
+import com.example.demo.entity.Schedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 
 @Repository
-public interface FlightScheduleDao extends JpaRepository<FlightSchedule, Long> {
-    Collection<FlightSchedule> retrieveByFlightNumberAndDepartureAfter(Long flightNumber, LocalDateTime timestamp);
+public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
+    Collection<Schedule> retrieveByFlightNumberAndDepartureAfter(Long flightNumber, LocalDateTime timestamp);
+
+    List<Schedule> getByFlightAndTimeAfter(Long flightIdentifier, LocalDateTime referenceTime);
 }
