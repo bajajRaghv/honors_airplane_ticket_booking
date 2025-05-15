@@ -18,6 +18,9 @@ pipeline {
         stage('Run Tests') {
             steps {
                 echo "Running test cases..."
+                bat """
+                whoami
+                """
                 // Add test execution command here
             }
         }
