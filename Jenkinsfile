@@ -6,7 +6,7 @@ pipeline {
         EC2_HOST = '13.200.243.122'
         SSH_CREDENTIALS_ID = '1ff4987a-2ec1-421d-b4b1-3f13dc0ff9f8'
         JAR_NAME = 'demo-0.0.1-SNAPSHOT.jar'
-    }`1`
+    }
 
     stages {
         stage('Build Project') {
