@@ -1,72 +1,66 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        EC2_USER      = 'ec2-user'
-        EC2_HOST      = '13.200.243.122'
-        JAR_NAME      = 'demo-0.0.1-SNAPSHOT.jar'
-        SSH_CREDENTIALS_ID = '1ff4987a-2ec1-421d-b4b1-3f13dc0ff9f8'
+  environment {
+    EC2_USER          = 'ec2-user'
+    EC2_HOST          = '13.200.243.122'
+    JAR_NAME          = 'demo-0.0.1-SNAPSHOT.jar'
+    SSH_CREDENTIALS_ID = '1ff4987a-2ec1-421d-b4b1-3f13dc0ff9f8'
+  }
+
+  stages {
+    stage('Build Project') {
+      steps {
+        bat 'mvn clean package -DskipTests=true'
+      }
     }
 
-    stages {
-        stage('Build Project') {
-            steps {
-                echo "Building project with Maven..."
-                bat 'mvn clean package -DskipTests=true'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                echo "Running test cases..."
-                bat 'whoami'   // confirms agent user
-                // (you can add real test commands here later)
-            }
-        }
-
-        stage('Fix SSH Key Permissions') {
-            steps {
-                withCredentials([sshUserPrivateKey(
-                    credentialsId: SSH_CREDENTIALS_ID,
-                    keyFileVariable: 'SSH_KEY'
-                )]) {
-                    bat """
-                        echo Fixing SSH key permissions...
-                        icacls "%SSH_KEY%" /inheritance:r
-                        icacls "%SSH_KEY%" /remove "Users"
-                        icacls "%SSH_KEY%" /remove "BUILTIN\\\\Users"
-                        icacls "%SSH_KEY%" /grant:r "SYSTEM:R"
-                    """
-                }
-            }
-        }
-
-        stage('Deploy to EC2') {
-            steps {
-                echo "Deploying ${JAR_NAME} to EC2..."
-                withCredentials([sshUserPrivateKey(
-                    credentialsId: SSH_CREDENTIALS_ID,
-                    keyFileVariable: 'SSH_KEY'
-                )]) {
-                    bat """
-                        scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no target\\\\${JAR_NAME} ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/${JAR_NAME}
-                    """
-                }
-            }
-        }
-
-        stage('Run JAR on EC2') {
-            steps {
-                echo "Running Spring Boot application on EC2..."
-                withCredentials([sshUserPrivateKey(
-                    credentialsId: SSH_CREDENTIALS_ID,
-                    keyFileVariable: 'SSH_KEY'
-                )]) {
-                    bat """
-                        ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "pkill -f ${JAR_NAME} || echo No process to kill; nohup java -jar /home/${EC2_USER}/${JAR_NAME} > app.log 2>&1 &"
-                    """
-                }
-            }
-        }
+    stage('Run Tests') {
+      steps {
+        bat 'whoami'
+      }
     }
+
+    stage('Deploy to EC2') {
+      steps {
+        echo "Deploying ${JAR_NAME} to EC2..."
+        withCredentials([sshUserPrivateKey(
+          credentialsId: SSH_CREDENTIALS_ID,
+          keyFileVariable: 'SSH_KEY'
+        )]) {
+          bat """
+            rem — Restrict permissions so OpenSSH will load the key
+            icacls "%SSH_KEY%" /inheritance:r
+            icacls "%SSH_KEY%" /remove "Users"
+            icacls "%SSH_KEY%" /remove "BUILTIN\\\\Users"
+            icacls "%SSH_KEY%" /grant:r "SYSTEM:R"
+
+            rem — Now copy the JAR
+            scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no target\\${JAR_NAME} ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/${JAR_NAME}
+          """
+        }
+      }
+    }
+
+    stage('Run JAR on EC2') {
+      steps {
+        echo "Running Spring Boot on EC2..."
+        withCredentials([sshUserPrivateKey(
+          credentialsId: SSH_CREDENTIALS_ID,
+          keyFileVariable: 'SSH_KEY'
+        )]) {
+          bat """
+            rem — Fix permissions again for this block’s temp key
+            icacls "%SSH_KEY%" /inheritance:r
+            icacls "%SSH_KEY%" /remove "Users"
+            icacls "%SSH_KEY%" /remove "BUILTIN\\\\Users"
+            icacls "%SSH_KEY%" /grant:r "SYSTEM:R"
+
+            rem — SSH in and restart the app
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "pkill -f ${JAR_NAME} || echo No process to kill; nohup java -jar /home/${EC2_USER}/${JAR_NAME} > app.log 2>&1 &"
+          """
+        }
+      }
+    }
+  }
 }
