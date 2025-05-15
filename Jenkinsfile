@@ -12,14 +12,14 @@ pipeline {
         stage('Build Project') {
             steps {
                 echo "Building project with Maven..."
-                sh 'mvn clean package -DskipTests=false'
+                bat  'mvn clean package -DskipTests=false'
             }
         }
 
         stage('Run Tests') {
             steps {
                 echo "Running test cases..."
-                sh 'mvn test'
+                bat  'mvn test'
             }
         }
 
@@ -27,7 +27,7 @@ pipeline {
             steps {
                 echo "Deploying ${JAR_NAME} to EC2..."
                 sshagent (credentials: ["${SSH_CREDENTIALS_ID}"]) {
-                    sh """
+                    bat  """
                         scp -o StrictHostKeyChecking=no target/${JAR_NAME} ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/${JAR_NAME}
                     """
                 }
@@ -38,7 +38,7 @@ pipeline {
             steps {
                 echo "Running Spring Boot application on EC2..."
                 sshagent (credentials: ["${SSH_CREDENTIALS_ID}"]) {
-                    sh """
+                    bat  """
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
                             echo "Killing existing app if running..."
                             pkill -f ${JAR_NAME} || true
