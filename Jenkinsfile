@@ -28,9 +28,11 @@ pipeline {
                 withCredentials([sshUserPrivateKey(credentialsId: '1ff4987a-2ec1-421d-b4b1-3f13dc0ff9f8', keyFileVariable: 'SSH_KEY')]) {
                     bat """
                        for /f "tokens=2 delims==" %%I in ('powershell -command "[System.Security.Principal.WindowsIdentity]::GetCurrent().Name"') do set CURRENT_USER=%%I
+                       echo Fixing SSH key permissions...
                        icacls "%SSH_KEY%" /inheritance:r
-                       icacls "%SSH_KEY%" /grant:r "%CURRENT_USER%:R"
-                       icacls "%SSH_KEY%" /remove "BUILTIN\Users"
+                       icacls "%SSH_KEY%" /grant:r "Administrators:F"
+                       icacls "%SSH_KEY%" /remove "BUILTIN\\Users"
+                       icacls "%SSH_KEY%" /remove "Users"
 
                        echo Copying JAR to EC2...
                        scp -i %SSH_KEY% -o StrictHostKeyChecking=no target\\${JAR_NAME} ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/${JAR_NAME}
