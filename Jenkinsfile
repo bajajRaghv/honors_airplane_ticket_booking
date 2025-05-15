@@ -27,11 +27,18 @@ pipeline {
                 echo "Deploying ${JAR_NAME} to EC2..."
                 withCredentials([sshUserPrivateKey(credentialsId: '1ff4987a-2ec1-421d-b4b1-3f13dc0ff9f8', keyFileVariable: 'SSH_KEY')]) {
                     bat """
+                        echo Fixing SSH key permissions...
+                        icacls "%SSH_KEY%" /inheritance:r
+                        icacls "%SSH_KEY%" /grant:r "%USERNAME%:R"
+                        icacls "%SSH_KEY%" /remove "BUILTIN\\Users"
+
+                        echo Copying JAR to EC2...
                         scp -i %SSH_KEY% -o StrictHostKeyChecking=no target\\${JAR_NAME} ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/${JAR_NAME}
                     """
                 }
             }
         }
+
 
         stage('Run JAR on EC2') {
             steps {
