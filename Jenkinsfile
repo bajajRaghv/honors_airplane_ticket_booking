@@ -17,7 +17,7 @@ pipeline {
 
     stage('Deploy & Run') {
       steps {
-        sshagent (credentials: [SSH_CREDENTIALS_ID]) {
+        ssh agent (credentials: [SSH_CREDENTIALS_ID]) {
           sh """
             scp -o StrictHostKeyChecking=no target/${JAR_NAME} ${EC2_USER}@${EC2_HOST}:/home/${EC2_USER}/
             ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \\
